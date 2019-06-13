@@ -16,6 +16,8 @@ message(STATUS "cmake prefix path: ${CMAKE_PREFIX_PATH}")
 include_directories(BEFORE
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/include
+    ${CMAKE_INSTALL_PREFIX}/include/cubao_bundles
+    # ~/.cmake_install/include/cubao_bundles
 )
 print_include_directories()
 
