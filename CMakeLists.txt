@@ -35,6 +35,8 @@ file(GLOB_RECURSE SOURCES src/*.cpp)
 include(cmake/LibraryConfig.cmake)
 target_link_libraries(${PROJECT_NAME}
     cubao_bundles
+    h3
+    s2
 )
 print_all_linked_libraries(${PROJECT_NAME})
 
