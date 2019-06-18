@@ -14,9 +14,12 @@ set(CMAKE_CXX_STANDARD 17)
 # list(APPEND CMAKE_PREFIX_PATH $ENV{CMAKE_INSTALL_PREFIX} $ENV{HOME}/.cmake_install)
 message(STATUS "cmake prefix path: ${CMAKE_PREFIX_PATH}")
 
+find_package(OpenSSL REQUIRED)
+
 include_directories(BEFORE
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/include
+    ${CMAKE_INSTALL_PREFIX}/include/
     ${CMAKE_INSTALL_PREFIX}/include/cubao_bundles
     # ~/.cmake_install/include/cubao_bundles
 )
@@ -38,6 +41,9 @@ target_link_libraries(${PROJECT_NAME}
     cubao_bundles
     h3
     s2
+    glog
+    gflags
+    ${OPENSSL_LIBRARIES}
 )
 print_all_linked_libraries(${PROJECT_NAME})
 
