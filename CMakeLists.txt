@@ -9,6 +9,7 @@ endif()
 include(cmake/GitHooks.cmake)
 include(cmake/Utilities.cmake)
 include(cmake/GeneralConfig.cmake)
+set(CMAKE_CXX_STANDARD 17)
 
 # list(APPEND CMAKE_PREFIX_PATH $ENV{CMAKE_INSTALL_PREFIX} $ENV{HOME}/.cmake_install)
 message(STATUS "cmake prefix path: ${CMAKE_PREFIX_PATH}")
