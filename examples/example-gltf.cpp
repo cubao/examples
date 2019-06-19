@@ -1,6 +1,8 @@
 #include "fx/gltf.h"
 #include <iostream>
 
+// https://github.com/jessey-git/fx-gltf/issues/53
+
 struct vec3
 {
     float x;
@@ -22,15 +24,12 @@ uint32_t serialize(std::vector<T> const &from, std::vector<uint8_t> &to,
 
 int main()
 {
-
     // Let's create geometry for a square
     //   4 vec3's defining the vertex positions
     //   4 vec3's defining the vertex normals (all point same way)
     //   Index buffer so the gfx api knows what how to draw the 2 triangles
     std::vector<vec3> positions{vec3{-1, 0, 1}, vec3{1, 0, -1}, vec3{-1, 0, -1},
                                 vec3{1, 0, 1}};
-    std::vector<vec3> normals{vec3{0, 1, 0}, vec3{0, 1, 0}, vec3{0, 1, 0},
-                              vec3{0, 1, 0}};
     std::vector<uint32_t> indices{0, 1, 2, 0, 3, 1};
 
     // "Serialize" the above information into a raw byte array
@@ -40,11 +39,9 @@ int main()
     fx::gltf::Buffer buffer{};
     uint32_t indexSize = serialize(indices, buffer.data, 0);
     uint32_t positionSize = serialize(positions, buffer.data, indexSize);
-    uint32_t normalSize =
-        serialize(normals, buffer.data, indexSize + positionSize);
 
     // At this point our raw buffer contains 120 total bytes of information
-    // It's arranged as follows: [indices | positions | normals]
+    // It's arranged as follows: [indices | positions]
     buffer.byteLength = static_cast<uint32_t>(buffer.data.size());
     buffer.SetEmbeddedResource();
 
@@ -58,25 +55,19 @@ int main()
     // Build the "views" into the "buffer"
     fx::gltf::BufferView indexBufferView{};
     fx::gltf::BufferView positionBufferView{};
-    fx::gltf::BufferView normalBufferView{};
     indexBufferView.buffer = 0;
     indexBufferView.byteLength = indexSize;
     indexBufferView.byteOffset = 0;
     positionBufferView.buffer = 0;
     positionBufferView.byteLength = positionSize;
     positionBufferView.byteOffset = indexSize;
-    normalBufferView.buffer = 0;
-    normalBufferView.byteLength = normalSize;
-    normalBufferView.byteOffset = indexSize + positionSize;
 
     doc.bufferViews.push_back(indexBufferView);
     doc.bufferViews.push_back(positionBufferView);
-    doc.bufferViews.push_back(normalBufferView);
 
     // Now we need "accessors" to know how to interpret each of those "views"
     fx::gltf::Accessor indexAccessor{};
     fx::gltf::Accessor positionAccessor{};
-    fx::gltf::Accessor normalAccessor{};
     indexAccessor.bufferView = 0;
     indexAccessor.componentType =
         fx::gltf::Accessor::ComponentType::UnsignedInt;
@@ -86,22 +77,54 @@ int main()
     positionAccessor.componentType = fx::gltf::Accessor::ComponentType::Float;
     positionAccessor.count = static_cast<uint32_t>(positions.size());
     positionAccessor.type = fx::gltf::Accessor::Type::Vec3;
-    normalAccessor.bufferView = 2;
-    normalAccessor.componentType = fx::gltf::Accessor::ComponentType::Float;
-    normalAccessor.count = static_cast<uint32_t>(normals.size());
-    normalAccessor.type = fx::gltf::Accessor::Type::Vec3;
 
     // My viewer requires min/max (shame)
     indexAccessor.min = {0};
     indexAccessor.max = {3};
     positionAccessor.min = {-1, 0, -1};
     positionAccessor.max = {1, 0, 1};
-    normalAccessor.min = {0, 1, 0};
-    normalAccessor.max = {0, 1, 0};
 
     doc.accessors.push_back(indexAccessor);
     doc.accessors.push_back(positionAccessor);
-    doc.accessors.push_back(normalAccessor);
+
+    /*
+    "materials": [
+        {
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    0.803921568627451,
+                    0.1450980392156863,
+                    0.1450980392156863,
+                    1
+                ],
+                "metallicFactor": 0,
+                "roughnessFactor": 0.9
+            },
+            "emissiveFactor": [
+                0.47843137254901963,
+                0.09019607843137255,
+                0.09019607843137255
+            ],
+            "extensions": {
+                "KHR_materials_unlit": {}
+            },
+            "doubleSided": true
+        }
+    ],
+    */
+    // materials
+    // /home/conan/.cmake_install/include/cubao_bundles/fx/gltf.h
+    fx::gltf::Material material{};
+    material.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.0f, 0.0f, 1.0f};
+    material.pbrMetallicRoughness.metallicFactor = 0.0f;
+    material.pbrMetallicRoughness.roughnessFactor = 0.9f;
+    material.emissiveFactor = {1.0f, 0.0f, 0.0f};
+    material.doubleSided = true;
+    material.extensionsAndExtras = {
+        {"KHR_materials_unlit", nlohmann::json::object()},
+    };
+    doc.materials.push_back(material);
+    doc.extensionsUsed.push_back("KHR_materials_unlit");
 
     // We need "meshes" to describe how to assemble the darn thing...
     fx::gltf::Mesh squareMesh{};
@@ -109,7 +132,7 @@ int main()
     squareMesh.name = "SampleSquare";
     squarePrimitive.indices = 0;                // accessor 0
     squarePrimitive.attributes["POSITION"] = 1; // accessor 1
-    squarePrimitive.attributes["NORMAL"] = 2;   // accessor 2
+    squarePrimitive.material = 0;
     squareMesh.primitives.push_back(squarePrimitive);
 
     doc.meshes.push_back(squareMesh);
@@ -128,6 +151,8 @@ int main()
     doc.scene = 0;
 
     // Simple right?
-    fx::gltf::Save(doc, "square.gltf", false);
+    std::string path = "square.gltf";
+    fx::gltf::Save(doc, path, false);
+    std::cout << "wrote to " << path << std::endl;
     return 0;
 }
